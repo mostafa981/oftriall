@@ -9,25 +9,30 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import os
-
+import datetime
 
 SENT_FILE = "sent_links.txt"
 
 
 # ==========================
-# 📂 Sent Links Handling
+# 📂 Sent Links Handling (per day)
 # ==========================
 def load_sent_links():
     if not os.path.exists(SENT_FILE):
-        return set()
+        return {}
+    sent = {}
     with open(SENT_FILE, "r") as f:
-        return set(line.strip() for line in f)
+        for line in f:
+            if "|" in line:
+                url, date_str = line.strip().split("|", 1)
+                sent[url] = date_str
+    return sent
 
 
-def save_sent_links(links):
+def save_sent_links(sent_links):
     with open(SENT_FILE, "w") as f:
-        for link in links:
-            f.write(link + "\n")
+        for url, date_str in sent_links.items():
+            f.write(f"{url}|{date_str}\n")
 
 
 # ==========================
@@ -59,29 +64,58 @@ def send_email(subject, body):
 
 
 # ==========================
+# 🌐 Chrome Driver Setup
+# ==========================
+def make_driver():
+    chrome_options = Options()
+    chrome_bin = os.getenv("CHROME_PATH") or "/usr/bin/google-chrome"
+    chrome_options.binary_location = chrome_bin
+
+    chrome_options.add_argument("--headless=new")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1280,1024")
+    chrome_options.add_argument(
+        "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36"
+    )
+
+    driver = webdriver.Chrome(
+        service=Service(ChromeDriverManager().install()),
+        options=chrome_options
+    )
+    return driver
+
+
+# ==========================
 # 🔍 Check Updates Function
 # ==========================
 def check_for_updates(url, keyword, sent_links):
-    chrome_options = Options()
-    chrome_options.binary_location = "/usr/bin/google-chrome"
-    chrome_options.add_argument("--headless")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+    driver = make_driver()
     driver.get(url)
 
+    today = datetime.date.today().isoformat()  # YYYY-MM-DD
+
     try:
-        subscribe_button = WebDriverWait(driver, 10).until(
+        wait = WebDriverWait(driver, 20)
+        subscribe_button = wait.until(
             EC.presence_of_element_located(
                 (By.CSS_SELECTOR, ".b-offer-join__btn, .m-rounded.m-flex.m-space-between.m-lg.g-btn")
             )
         )
         print(f"🔎 Found subscribe button on {url}")
-        button_text = subscribe_button.text.lower()
-        if keyword.lower() in button_text and url not in sent_links:
-            send_email(f"Update Found on {url}", f"There's a free offer available on {url}")
-            sent_links.add(url)
+        button_text = (subscribe_button.text or "").lower()
+
+        last_sent = sent_links.get(url)
+
+        if keyword.lower() in button_text:
+            if last_sent == today:
+                print(f"⏩ Already sent {url} today, skipping.")
+            else:
+                send_email(f"Update Found on {url}", f"There's a free offer available on {url}")
+                sent_links[url] = today
+
     except Exception as e:
         print(f"⚠️ Failed to check {url}: {e}")
     finally:
