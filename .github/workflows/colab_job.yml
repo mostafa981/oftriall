@@ -2,52 +2,37 @@ name: OnlyFans Free Offer Monitor
 
 on:
   schedule:
-    - cron: "0 * * * *"   # كل ساعة (UTC)
+    - cron: "0 * * * *"   # كل ساعة
   workflow_dispatch:
-
-permissions:
-  contents: write
-
-concurrency:
-  group: onlyfans-free-offer-monitor
-  cancel-in-progress: true
 
 jobs:
   check-updates:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      PYTHONUNBUFFERED: "1"
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Install Google Chrome
+      - name: Install Chrome & dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
-
-      - name: Show Chrome version
-        run: google-chrome --version
-
-      - name: Cache WebDriver Manager
-        uses: actions/cache@v4
-        with:
-          path: ~/.wdm
-          key: wdm-${{ runner.os }}
-          restore-keys: |
-            wdm-${{ runner.os }}-
+          sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4 google-chrome-stable || true
 
       - name: Install Python dependencies
         run: |
-          python -m pip install --upgrade pip
           pip install selenium webdriver-manager
+
+      - name: Download sent_links artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sent_links
+          path: .
+        continue-on-error: true  # يتجاهل لو مفيش artifact أول مرة
 
       - name: Run Script
         env:
@@ -55,27 +40,8 @@ jobs:
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
         run: python main.py
 
-      - name: Commit sent_links.txt back to repo
-        if: always()
-        run: |
-          if [ -f sent_links.txt ]; then
-            if ! git diff --quiet -- sent_links.txt; then
-              git config user.name "github-actions[bot]"
-              git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-              git add sent_links.txt
-              git commit -m "chore: update sent_links.txt [skip ci]"
-              git push
-            else
-              echo "No changes in sent_links.txt"
-            fi
-          else
-            echo "sent_links.txt not found, nothing to commit"
-          fi
-
-      - name: Upload sent_links artifact (backup)
-        if: always() && hashFiles('sent_links.txt') != ''
+      - name: Upload sent_links artifact
         uses: actions/upload-artifact@v4
         with:
-          name: sent_links-${{ github.run_id }}
+          name: sent_links
           path: sent_links.txt
-          retention-days: 7
