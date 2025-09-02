@@ -2,8 +2,8 @@ name: Check Offers
 
 on:
   schedule:
-    # تشغيل يوميًا الساعة 9 صباحًا بتوقيت UTC
-    - cron: "0 9 * * *"
+    # تشغيل كل ساعة (الدقيقة 0 من كل ساعة) بتوقيت UTC
+    - cron: "0 * * * *"
   workflow_dispatch:
 
 jobs:
