@@ -73,7 +73,7 @@ jobs:
           fi
 
       - name: Upload sent_links artifact (backup)
-        if: always()
+        if: always() && hashFiles('sent_links.txt') != ''
         uses: actions/upload-artifact@v4
         with:
           name: sent_links-${{ github.run_id }}
