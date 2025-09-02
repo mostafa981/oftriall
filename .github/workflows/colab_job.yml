@@ -2,6 +2,7 @@ name: Check Offers
 
 on:
   schedule:
+    # تشغيل يوميًا الساعة 9 صباحًا بتوقيت UTC
     - cron: "0 9 * * *"
   workflow_dispatch:
 
@@ -22,17 +23,10 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: 🌐 Install Chrome & Chromedriver
+      - name: 🌐 Install Chrome
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget unzip
-          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
-          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
-          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
-          wget -O /tmp/chromedriver.zip https://chromedriver.storage.googleapis.com/$(echo $CHROME_VERSION | cut -d. -f1)/chromedriver_linux64.zip || true
-          unzip /tmp/chromedriver.zip -d /tmp/ || true
-          sudo mv /tmp/chromedriver /usr/local/bin/chromedriver
-          sudo chmod +x /usr/local/bin/chromedriver
+          sudo apt-get install -y google-chrome-stable
 
       - name: 🚀 Run script
         env:
