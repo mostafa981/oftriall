@@ -2,33 +2,33 @@ name: Check Offers
 
 on:
   schedule:
-    # تشغيل كل يوم الساعة 9 صباحًا (بتوقيت UTC)
+    # تشغيل يوميًا الساعة 9 صباحًا (بتوقيت UTC)
     - cron: "0 9 * * *"
-  workflow_dispatch: # تشغيل يدوي برضه
+  workflow_dispatch: # يسمحلك تشغله يدويًا من GitHub
 
 jobs:
   run-script:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
           pip install -r requirements.txt
 
-      - name: Install Chrome and Chromedriver
+      - name: 🌐 Install Chrome and Chromedriver
         run: |
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
 
-      - name: Run script
+      - name: 🚀 Run script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
