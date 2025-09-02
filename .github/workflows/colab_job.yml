@@ -1,36 +1,47 @@
-name: Check Offers
+name: OnlyFans Free Offer Monitor
 
 on:
   schedule:
-    # تشغيل كل ساعة (الدقيقة 0 من كل ساعة) بتوقيت UTC
-    - cron: "0 * * * *"
+    - cron: "0 * * * *"   # كل ساعة
   workflow_dispatch:
 
 jobs:
-  run-script:
+  check-updates:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: 🐍 Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
 
-      - name: 📦 Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: 🌐 Install Chrome
+      - name: Install Chrome & dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y google-chrome-stable
+          sudo apt-get install -y wget unzip xvfb libxi6 libgconf-2-4 google-chrome-stable || true
 
-      - name: 🚀 Run script
+      - name: Install Python dependencies
+        run: |
+          pip install selenium webdriver-manager
+
+      - name: Download sent_links artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: sent_links
+          path: .
+        continue-on-error: true  # يتجاهل لو مفيش artifact أول مرة
+
+      - name: Run Script
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-        run: |
-          python main.py
+        run: python main.py
+
+      - name: Upload sent_links artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sent_links
+          path: sent_links.txt
