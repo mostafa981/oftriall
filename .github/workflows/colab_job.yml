@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write  # مطلوب علشان نحفظ sent_links.txt في الريبو
+  contents: write
 
 concurrency:
   group: onlyfans-free-offer-monitor
@@ -28,22 +28,19 @@ jobs:
         with:
           python-version: "3.10"
 
-      - name: Setup Google Chrome
-        id: setup-chrome
-        uses: browser-actions/setup-chrome@v1
-        with:
-          chrome-version: stable
+      - name: Install Google Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
 
       - name: Show Chrome version
-        run: |
-          echo "CHROME_PATH=$CHROME_PATH"
-          "$CHROME_PATH" --version
+        run: google-chrome --version
 
       - name: Cache WebDriver Manager
         uses: actions/cache@v4
         with:
           path: ~/.wdm
-          key: wdm-${{ runner.os }}-chrome-${{ steps.setup-chrome.outputs.chrome-version }}
+          key: wdm-${{ runner.os }}
           restore-keys: |
             wdm-${{ runner.os }}-
 
@@ -56,7 +53,6 @@ jobs:
         env:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
-          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
         run: python main.py
 
       - name: Commit sent_links.txt back to repo
