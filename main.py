@@ -11,6 +11,25 @@ from email.mime.multipart import MIMEMultipart
 import os
 
 
+SENT_FILE = "sent_links.txt"
+
+
+# ==========================
+# 📂 Sent Links Handling
+# ==========================
+def load_sent_links():
+    if not os.path.exists(SENT_FILE):
+        return set()
+    with open(SENT_FILE, "r") as f:
+        return set(line.strip() for line in f)
+
+
+def save_sent_links(links):
+    with open(SENT_FILE, "w") as f:
+        for link in links:
+            f.write(link + "\n")
+
+
 # ==========================
 # 📧 Email Function
 # ==========================
@@ -42,7 +61,7 @@ def send_email(subject, body):
 # ==========================
 # 🔍 Check Updates Function
 # ==========================
-def check_for_updates(url, keyword):
+def check_for_updates(url, keyword, sent_links):
     chrome_options = Options()
     chrome_options.binary_location = "/usr/bin/google-chrome"
     chrome_options.add_argument("--headless")
@@ -60,8 +79,9 @@ def check_for_updates(url, keyword):
         )
         print(f"🔎 Found subscribe button on {url}")
         button_text = subscribe_button.text.lower()
-        if keyword.lower() in button_text:
+        if keyword.lower() in button_text and url not in sent_links:
             send_email(f"Update Found on {url}", f"There's a free offer available on {url}")
+            sent_links.add(url)
     except Exception as e:
         print(f"⚠️ Failed to check {url}: {e}")
     finally:
@@ -82,9 +102,11 @@ def load_urls_from_file(filename):
 if __name__ == "__main__":
     urls = load_urls_from_file('urls.txt')
     keyword = "free for"
+    sent_links = load_sent_links()
 
     for url in urls:
         print(f"➡️ Checking {url}...")
-        check_for_updates(url, keyword)
+        check_for_updates(url, keyword, sent_links)
 
+    save_sent_links(sent_links)
     print("✅ Finished checking all URLs.")
