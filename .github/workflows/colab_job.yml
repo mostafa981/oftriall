@@ -2,8 +2,12 @@ name: OnlyFans Free Offer Monitor
 
 on:
   schedule:
-    - cron: "0 * * * *"   # كل ساعة
+    - cron: "0 * * * *"   # يشتغل كل ساعة
   workflow_dispatch:
+
+concurrency:
+  group: onlyfans-monitor
+  cancel-in-progress: false
 
 jobs:
   check-updates:
